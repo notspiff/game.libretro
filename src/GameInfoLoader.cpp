@@ -21,7 +21,7 @@
 #include "GameInfoLoader.h"
 #include "log/Log.h"
 
-#include "libXBMC_addon.h"
+#include <kodi/Filesystem.h>
 
 #include <stdint.h>
 
@@ -43,14 +43,14 @@ bool CGameInfoLoader::Load(void)
   if (!m_bSupportsVfs)
     return false;
 
-  struct __stat64 statStruct = { };
+  STAT_STRUCTURE statStruc;
 
-  bool bExists = (m_xbmc->StatFile(m_path.c_str(), &statStruct) == 0);
+  bool bExists = kodi::vfs::StatFile(m_path, statStruc);
 
   // Not all VFS protocols necessarily support StatFile(), so also check if file exists
   if (!bExists)
   {
-    bExists = m_xbmc->FileExists(m_path.c_str(), true);
+    bExists = kodi::vfs::FileExists(m_path, true);
     if (bExists)
     {
       dsyslog("Failed to stat (but file exists): %s", m_path.c_str());
@@ -62,21 +62,21 @@ bool CGameInfoLoader::Load(void)
     }
   }
 
-  void* file = m_xbmc->OpenFile(m_path.c_str(), 0);
-  if (!file)
+  kodi::vfs::CFile file;
+  if (!file.OpenFile(m_path))
   {
     esyslog("Failed to open file: %s", m_path.c_str());
     return false;
   }
 
-  int64_t size = statStruct.st_size;
+  uint64_t size = statStruc.size;
   if (size > 0)
   {
     // Size is known, read entire file at once (unless it is too big)
     if (size <= MAX_READ_SIZE)
     {
       m_dataBuffer.resize((size_t)size);
-      m_xbmc->ReadFile(file, m_dataBuffer.data(), size);
+      file.Read(m_dataBuffer.data(), size);
     }
     else
     {
@@ -90,7 +90,7 @@ bool CGameInfoLoader::Load(void)
     // Read file in chunks
     unsigned int bytesRead;
     uint8_t buffer[READ_SIZE];
-    while ((bytesRead = m_xbmc->ReadFile(file, buffer, sizeof(buffer))) > 0)
+    while ((bytesRead = file.Read(buffer, sizeof(buffer))) > 0)
     {
       m_dataBuffer.insert(m_dataBuffer.end(), buffer, buffer + bytesRead);
 
