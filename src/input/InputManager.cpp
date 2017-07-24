@@ -19,6 +19,7 @@
  */
 
 #include "InputManager.h"
+#include "ControllerTopology.h"
 #include "LibretroDevice.h"
 #include "LibretroDeviceInput.h"
 #include "libretro/ClientBridge.h"
@@ -30,9 +31,13 @@
 #include "libKODI_game.h"
 
 #include <algorithm>
+#include <sstream>
 
 using namespace LIBRETRO;
 using namespace P8PLATFORM;
+
+#define GAME_INPUT_PORT_INVALID  (-1)
+#define GAME_INPUT_PORT_MOUSE    (-2) // TODO
 
 CInputManager& CInputManager::Get(void)
 {
@@ -50,68 +55,85 @@ libretro_device_caps_t CInputManager::GetDeviceCaps(void) const
          1 << RETRO_DEVICE_POINTER;
 }
 
-void CInputManager::DeviceConnected(int port, bool bConnected, const game_controller* connectedDevice)
+bool CInputManager::SetController(const std::string &address, const game_controller* controller)
 {
-  if (bConnected)
-    m_devices[port] = std::make_shared<CLibretroDevice>(connectedDevice);
-  else
-    m_devices[port].reset();
+  const int port = GetPortNumber(address);
+
+  if (port != GAME_INPUT_PORT_INVALID)
+  {
+    if (controller != nullptr)
+      m_devices[port] = std::make_shared<CLibretroDevice>(controller);
+    else
+      m_devices[port].reset();
+
+    return true;
+  }
+
+  return false;
 }
 
-unsigned int CInputManager::GetDeviceType(unsigned int port) const
+int CInputManager::GetPortNumber(const std::string &address) const
 {
-  unsigned int deviceType = RETRO_DEVICE_NONE;
+  int portNumber = GAME_INPUT_PORT_INVALID;
+
+  // TODO
+  if (address == "-2/game.controller.mouse")
+    portNumber = GAME_INPUT_PORT_MOUSE;
+  else
+  {
+    if (CControllerTopology::GetInstance().PortCount() == 0)
+      return portNumber = 0;
+    else if (!address.empty() && address[0] >= '1' && address[0] <= '9')
+      portNumber = address[0] - '1';
+  }
+
+  return portNumber;
+}
+
+std::string CInputManager::GetAddress(int port) const
+{
+  std::ostringstream address;
 
   auto it = m_devices.find(port);
   if (it != m_devices.end())
   {
     const auto &device = it->second;
-    if (device)
+
+    address << port;
+    address << "/";
+    address << device->ControllerID();
+  }
+
+  return address.str();
+}
+
+unsigned int CInputManager::GetDeviceType(const std::string &address) const
+{
+  unsigned int deviceType = RETRO_DEVICE_NONE;
+
+  const int port = GetPortNumber(address);
+  if (port != GAME_INPUT_PORT_INVALID)
+  {
+    auto it = m_devices.find(port);
+    if (it != m_devices.end())
     {
-      if (!device->HasSubclass())
-        deviceType = device->Type();
-      else
-        deviceType = RETRO_DEVICE_SUBCLASS(device->Type(), device->Subclass());
+      const auto &device = it->second;
+      if (device)
+      {
+        if (!device->HasSubclass())
+          deviceType = device->Type();
+        else
+          deviceType = RETRO_DEVICE_SUBCLASS(device->Type(), device->Subclass());
+      }
     }
   }
 
   return deviceType;
 }
 
-bool CInputManager::OpenPort(unsigned int port)
-{
-  if (!CLibretroEnvironment::Get().GetFrontend())
-    return false;
-
-  CLibretroEnvironment::Get().GetFrontend()->OpenPort(port);
-
-  return true;
-}
-
-DevicePtr CInputManager::GetPort(unsigned int port)
-{
-  return m_devices[port];
-}
-
-void CInputManager::ClosePort(unsigned int port)
-{
-  if (CLibretroEnvironment::Get().GetFrontend())
-    CLibretroEnvironment::Get().GetFrontend()->ClosePort(port);
-
-  m_devices[port].reset();
-}
-
 void CInputManager::ClosePorts(void)
 {
-  std::vector<unsigned int> ports;
-  for (auto it = m_devices.begin(); it != m_devices.end(); ++it)
-  {
-    if (it->second)
-      ports.push_back(it->first);
-  }
-
-  for (auto port : ports)
-    ClosePort(port);
+  m_devices.clear();
 }
 
 void CInputManager::EnableAnalogSensors(unsigned int port, bool bEnabled)
@@ -119,7 +141,7 @@ void CInputManager::EnableAnalogSensors(unsigned int port, bool bEnabled)
   // TODO
 }
 
-bool CInputManager::InputEvent(const game_input_event& event)
+bool CInputManager::InputEvent(const std::string &address, const game_input_event& event)
 {
   bool bHandled = false;
 
@@ -147,10 +169,18 @@ bool CInputManager::InputEvent(const game_input_event& event)
   }
   else
   {
-    const int port = event.port;
+    const int port = GetPortNumber(address);
 
-    if (m_devices[port])
-      bHandled = m_devices[port]->Input().InputEvent(event);
+    if (port != GAME_INPUT_PORT_INVALID)
+    {
+      auto it = m_devices.find(port);
+      if (it != m_devices.end())
+      {
+        auto &device = it->second;
+        if (device)
+          bHandled = device->Input().InputEvent(event);
+      }
+    }
   }
 
   return bHandled;
@@ -216,6 +246,7 @@ bool CInputManager::ButtonState(libretro_device_t device, unsigned int port, uns
   {
     int iPort = port;
 
+    // TODO
     if (device == RETRO_DEVICE_MOUSE)
       iPort = GAME_INPUT_PORT_MOUSE;
 
@@ -237,6 +268,7 @@ int CInputManager::DeltaX(libretro_device_t device, unsigned int port)
 
   int iPort = port;
 
+  // TODO
   if (device == RETRO_DEVICE_MOUSE)
     iPort = GAME_INPUT_PORT_MOUSE;
 
@@ -257,6 +289,7 @@ int CInputManager::DeltaY(libretro_device_t device, unsigned int port)
 
   int iPort = port;
 
+  // TODO
   if (device == RETRO_DEVICE_MOUSE)
     iPort = GAME_INPUT_PORT_MOUSE;
 

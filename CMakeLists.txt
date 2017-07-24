@@ -19,6 +19,7 @@ set(LIBRETRO_SOURCES src/client.cpp
                      src/audio/SingleFrameAudio.cpp
                      src/GameInfoLoader.cpp
                      src/input/ButtonMapper.cpp
+                     src/input/ControllerTopology.cpp
                      src/input/DefaultControllerTranslator.cpp
                      src/input/InputManager.cpp
                      src/input/LibretroDevice.cpp
@@ -44,6 +45,7 @@ set(LIBRETRO_HEADERS src/GameInfoLoader.h
                      src/audio/AudioStream.h
                      src/audio/SingleFrameAudio.h
                      src/input/ButtonMapper.h
+                     src/input/ControllerTopology.h
                      src/input/DefaultControllerDefines.h
                      src/input/DefaultControllerTranslator.h
                      src/input/InputDefinitions.h

@@ -53,17 +53,26 @@ namespace LIBRETRO
     /*!
      * \brief Called when a device has been connected to an open port
      */
-    void DeviceConnected(int port, bool bConnected, const game_controller* connectedController);
+    bool SetController(const std::string &address, const game_controller* controller);
+
+    /*!
+     * \brief Get the port number associated with the specified address
+     *
+     * \return The port number, or -1 if the address has no port number
+     */
+    int GetPortNumber(const std::string &address) const;
+
+    std::string GetAddress(int port) const;
 
     /*!
      * \brief Get the libretro device abstraction for the device connected to
-     *        the specified port
+     *        the specified address
      */
-    unsigned int GetDeviceType(unsigned int port) const;
+    unsigned int GetDeviceType(const std::string &address) const;
 
-    bool OpenPort(unsigned int port);
-    DevicePtr GetPort(unsigned int port);
-    void ClosePort(unsigned int port);
+    /*!
+     * \brief Close all ports
+     */
     void ClosePorts(void);
 
     /*!
@@ -77,7 +86,7 @@ namespace LIBRETRO
     /*!
      * \brief Called when an input event has occurred
      */
-    bool InputEvent(const game_input_event& event);
+    bool InputEvent(const std::string &address, const game_input_event& event);
 
     /*!
      * \brief Parse libretro input descriptors and output to the log

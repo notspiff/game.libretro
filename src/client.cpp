@@ -19,6 +19,7 @@
  */
 
 #include "input/ButtonMapper.h"
+#include "input/ControllerTopology.h"
 #include "input/InputManager.h"
 #include "libretro/ClientBridge.h"
 #include "libretro/libretro.h"
@@ -109,6 +110,7 @@ ADDON_STATUS ADDON_Create(void* callbacks, void* props)
     CLibretroEnvironment::Get().Initialize(XBMC, FRONTEND, CLIENT, CLIENT_BRIDGE, gameClientProps);
 
     CButtonMapper::Get().LoadButtonMap();
+    CControllerTopology::GetInstance().LoadTopology();
 
     CLIENT->retro_init();
 
@@ -176,6 +178,8 @@ void ADDON_Destroy(void)
   if (CLIENT)
     CLIENT->retro_deinit();
 
+  CControllerTopology::GetInstance().Clear();
+
   CLibretroEnvironment::Get().Deinitialize();
 
   CLog::Get().SetType(SYS_LOG_TYPE_CONSOLE);
@@ -238,16 +242,6 @@ GAME_ERROR LoadGame(const char* url)
     bResult = CLIENT->retro_load_game(&gameInfo);
   }
 
-  if (bResult)
-  {
-    CInputManager::Get().OpenPort(0);
-
-    // TODO
-    CInputManager::Get().OpenPort(1);
-    CInputManager::Get().OpenPort(2);
-    CInputManager::Get().OpenPort(3);
-  }
-
   return bResult ? GAME_ERROR_NO_ERROR : GAME_ERROR_FAILED;
 }
 
@@ -299,13 +293,6 @@ GAME_ERROR LoadStandalone(void)
 
   if (!CLIENT->retro_load_game(nullptr))
     return GAME_ERROR_FAILED;
-
-  CInputManager::Get().OpenPort(0);
-
-  // TODO
-  CInputManager::Get().OpenPort(1);
-  CInputManager::Get().OpenPort(2);
-  CInputManager::Get().OpenPort(3);
 
   return GAME_ERROR_NO_ERROR;
 }
@@ -429,25 +416,6 @@ GAME_ERROR HwContextDestroy()
   return CLIENT_BRIDGE->HwContextDestroy();
 }
 
-void UpdatePort(int port, bool connected, const game_controller* controller)
-{
-  if (connected)
-  {
-    if (!controller || !controller->controller_id)
-      return;
-  }
-
-  CInputManager::Get().DeviceConnected(port, connected, connected ? controller : nullptr);
-
-  if (port >= GAME_INPUT_PORT_JOYSTICK_START)
-  {
-    const unsigned int device = CInputManager::Get().GetDeviceType(port);
-
-    if (CLIENT)
-      CLIENT->retro_set_controller_port_device(port, device);
-  }
-}
-
 bool HasFeature(const char* controller_id, const char* feature_name)
 {
   if (controller_id == nullptr || feature_name == nullptr)
@@ -456,12 +424,47 @@ bool HasFeature(const char* controller_id, const char* feature_name)
   return CButtonMapper::Get().GetLibretroIndex(controller_id, feature_name) >= 0;
 }
 
-bool InputEvent(const game_input_event* event)
+bool GetPorts(game_input_port **ports, unsigned int *port_count)
 {
-  if (!event)
+  if (ports == nullptr || port_count == nullptr)
     return false;
 
-  return CInputManager::Get().InputEvent(*event);
+  return CControllerTopology::GetInstance().GetPorts(*ports, *port_count);
+}
+
+void FreePorts(game_input_port *ports, unsigned int port_count)
+{
+  return CControllerTopology::FreePorts(ports, port_count);
+}
+
+bool SetController(game_controller_address address, const game_controller* controller)
+{
+  if (address == nullptr)
+    return false;
+
+  if (CInputManager::Get().SetController(address, controller))
+  {
+    const int port = CInputManager::Get().GetPortNumber(address);
+    if (port >= 0)
+    {
+      const unsigned int device = CInputManager::Get().GetDeviceType(address);
+
+      if (CLIENT)
+        CLIENT->retro_set_controller_port_device(port, device);
+
+      return true;
+    }
+  }
+
+  return false;
+}
+
+bool InputEvent(game_controller_address address, const game_input_event* event)
+{
+  if (address == nullptr || event == nullptr)
+    return false;
+
+  return CInputManager::Get().InputEvent(address, *event);
 }
 
 size_t SerializeSize(void)

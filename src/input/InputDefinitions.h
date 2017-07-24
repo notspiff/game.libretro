@@ -28,3 +28,11 @@
 #define BUTTONMAP_XML_ATTR_CONTROLLER_SUBCLASS  "subclass"
 #define BUTTONMAP_XML_ATTR_FEATURE_NAME     "name"
 #define BUTTONMAP_XML_ATTR_FEATURE_MAPTO    "mapto"
+
+#define TOPOLOGY_XML_ROOT                   "logicaltopology"
+#define TOPOLOGY_XML_ELEM_PORT              "port"
+#define TOPOLOGY_XML_ELEM_ACCEPTS           "accepts"
+#define TOPOLOGY_XML_ATTR_PORT_ID           "id"
+#define TOPOLOGY_XML_ATTR_CONTROLLER_ID     "controller"
+#define TOPOLOGY_XML_ATTR_MODEL             "model"
+#define TOPOLOGY_XML_ATTR_EXCLUSIVE         "exclusive"

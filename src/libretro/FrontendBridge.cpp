@@ -215,12 +215,13 @@ bool CFrontendBridge::RumbleSetState(unsigned int port, retro_rumble_effect effe
 
   game_input_event eventStruct;
   eventStruct.type            = GAME_INPUT_EVENT_MOTOR;
-  eventStruct.port            = port;
   eventStruct.controller_id   = controllerId.c_str();
   eventStruct.feature_name    = featureName.c_str();
   eventStruct.motor.magnitude = CONSTRAIN(magnitude, 0.0f, 1.0f);
 
-  CLibretroEnvironment::Get().GetFrontend()->InputEvent(eventStruct);
+  std::string address = CInputManager::Get().GetAddress(port);
+
+  CLibretroEnvironment::Get().GetFrontend()->InputEvent(address.c_str(), eventStruct);
   return true;
 }
 
