@@ -59,7 +59,7 @@ namespace LIBRETRO
      * \brief Get the libretro device abstraction for the device connected to
      *        the specified port
      */
-    libretro_device_t GetDevice(unsigned int port);
+    unsigned int GetDeviceType(unsigned int port) const;
 
     bool OpenPort(unsigned int port);
     DevicePtr GetPort(unsigned int port);
