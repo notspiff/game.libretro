@@ -73,6 +73,7 @@ namespace LIBRETRO
       std::string controllerId;
       std::string model;
       bool exclusive;
+      bool force;
       std::vector<PortPtr> ports;
     };
 

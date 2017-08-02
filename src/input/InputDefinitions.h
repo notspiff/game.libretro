@@ -36,3 +36,4 @@
 #define TOPOLOGY_XML_ATTR_CONTROLLER_ID     "controller"
 #define TOPOLOGY_XML_ATTR_MODEL             "model"
 #define TOPOLOGY_XML_ATTR_EXCLUSIVE         "exclusive"
+#define TOPOLOGY_XML_ATTR_FORCE             "force"

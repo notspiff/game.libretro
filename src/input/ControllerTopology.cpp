@@ -195,6 +195,10 @@ CControllerTopology::ControllerPtr CControllerTopology::DeserializeController(co
     if (strExclusive != nullptr)
       controller->exclusive = (std::string(strExclusive) != "false");
 
+    const char* strForce = pElement->Attribute(TOPOLOGY_XML_ATTR_FORCE);
+    if (strForce != nullptr)
+      controller->force = (std::string(strForce) == "true");
+
     const TiXmlElement* pChild = pElement->FirstChildElement(TOPOLOGY_XML_ELEM_PORT);
     for ( ; pChild != nullptr; pChild = pChild->NextSiblingElement(TOPOLOGY_XML_ELEM_PORT))
     {
@@ -252,6 +256,8 @@ void CControllerTopology::GetControllers(const std::vector<ControllerPtr> &contr
         devices[i].model = controllerVec[i]->model.c_str();
 
       devices[i].exclusive = controllerVec[i]->exclusive;
+
+      devices[i].force = controllerVec[i]->force;
 
       GetPorts(controllerVec[i]->ports, devices[i].available_ports, devices[i].port_count);
     }
